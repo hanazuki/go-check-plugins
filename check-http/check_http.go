@@ -16,6 +16,7 @@ import (
 var opts struct {
 	URL string `short:"u" long:"url" required:"true" description:"A URL to connect to"`
 	NoCheckCertificate bool `long:"no-check-certificate" description:"Do not check certificate"`
+	ExpectedStatusCode int `long:"expected-status-code" desecription:"Expected status code"`
 }
 
 func main() {
@@ -52,13 +53,22 @@ func run(args []string) *checkers.Checker {
 	}
 
 	checkSt := checkers.UNKNOWN
-	switch st := resp.StatusCode; true {
-	case st < 400:
-		checkSt = checkers.OK
-	case st < 500:
-		checkSt = checkers.WARNING
-	default:
-		checkSt = checkers.CRITICAL
+
+	if opts.ExpectedStatusCode > 0 {
+		if resp.StatusCode == opts.ExpectedStatusCode {
+			checkSt = checkers.OK
+		} else {
+			checkSt = checkers.CRITICAL
+		}
+	} else {
+		switch st := resp.StatusCode; true {
+		case st < 400:
+			checkSt = checkers.OK
+		case st < 500:
+			checkSt = checkers.WARNING
+		default:
+			checkSt = checkers.CRITICAL
+		}
 	}
 
 	msg := fmt.Sprintf("%s %s - %d bytes in %f second respons time",
